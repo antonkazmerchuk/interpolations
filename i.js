@@ -193,7 +193,7 @@
 	// Produces instant polynomial
 	function StandardLagrange(tuples) {
 		var modifiedTuples = modifyTuples(tuples),
-			xs = modifiedTuples.xs
+			xs = modifiedTuples.xs,
 			ys = modifiedTuples.ys,
 			minX = min(xs), 
 			maxX = max(xs);
