@@ -1,7 +1,10 @@
 (function (window, undefined) {
 
 	var METHODS = {
-		'Newton' : Newton
+		'Newton' : Newton,
+		'Lagrange' : {
+			'standard' : StandardLagrange
+		}
 	};
 
 	function Polynomial (polynomial, xs) {
@@ -20,7 +23,7 @@
 		function poly(x) {
 			var result = 0, i;
 
-			if (x > xs.end || x < xs.start) {
+			if (notInRange(x, xs.start, xs.end)) {
 				return 0;
 			}
 
@@ -48,6 +51,10 @@
 				!isNaN(potentialNumber);
 	}
 
+	function array(potentialArray) {
+		return Array.isArray(potentialArray);
+	}
+
 	function hasProp(obj, prop) {
 		return obj.hasOwnProperty(prop);
 	}
@@ -57,16 +64,32 @@
 			return false;
 		}
 
-		for (var i = 0; i < potentialTupleArray.length; i++) {
+		var hash = {}, i;
+
+		for (i = 0; i < potentialTupleArray.length; i++) {
 			if (!hasProp(potentialTupleArray[i], 'x') || 
 				!hasProp(potentialTupleArray[i], 'y') || 
 				!number(potentialTupleArray[i].x) || 
 				!number(potentialTupleArray[i].y)) {
 				return false;
 			}
+
+			if (hash.hasOwnProperty(potentialTupleArray[i].x)) {
+				return false;
+			}
+
+			hash[potentialTupleArray[i].x] = true;
 		}
 
 		return true;
+	}
+
+	function notInRange(val, min, max) {
+		if (val < min || val > max) {
+			return true;
+		} 
+
+		return false;
 	}
 
 	function isTupleArrayPrecondition(potentialTupleArray) {
@@ -83,12 +106,30 @@
 		}
 	}
 
+	function modifyTuples(tuples) {
+		var modifiedTuples = {xs : [], ys : []}
+		for (i = 0; i < tuples.length; i++) {
+			modifiedTuples.xs.push(tuples[i].x);
+			modifiedTuples.ys.push(tuples[i].y);
+		}
 
-	// Params should be (x,y) tuple array
-	// Interpolates only, doesn't attempt to extrapole in any way
-	// In extrapolation-range it is zero
+		return modifiedTuples;
+	}
+
+	function min(array) {
+		return Math.min.apply(null, array);
+	}
+
+	function max(array) {
+		return Math.max.apply(null, array);
+	}
+
+	// Polynomial is obtained by Neville (finite-differences algorithm)
+	// TODO : it is ok, we have xs and coeffs (Neville), how do we compute poly using this most efficiently
 	function Newton (tuples) {
-		var modifiedTuples = {xs : [], ys : []},
+		// TODO: tuples should be sorted
+
+		var modifiedTuples = {},
 			coefficients = [],
 			polynomial,
 			i, j;
@@ -117,10 +158,7 @@
 			return result;
 		}
 
-		for (i = 0; i < tuples.length; i++) {
-			modifiedTuples.xs.push(tuples[i].x);
-			modifiedTuples.ys.push(tuples[i].y);
-		}
+		modifiedTuples = modifyTuples(tuples);
 
 		coefficients = finiteDifferences(modifiedTuples, 1);
 
@@ -144,33 +182,87 @@
 			polynomial.push(multTerm);
 		}
 
-		return new Polynomial(polynomial, {start : tuples[0].x, end: tuples[tuples.length - 1].x});
+		polynomial = new Polynomial(polynomial, {start : tuples[0].x, end: tuples[tuples.length - 1].x});
+		polynomial.originalData = tuples;
+
+		return polynomial;
 	}
 
 	Newton.preconditions = isTupleArrayPrecondition;
 
+	// Produces instant polynomial
+	function StandardLagrange(tuples) {
+		var modifiedTuples = modifyTuples(tuples),
+			xs = modifiedTuples.xs
+			ys = modifiedTuples.ys,
+			minX = min(xs), 
+			maxX = max(xs);
+			polynomial = function standardLagrange(x) {
+				var i, j, res = 0, y;
+
+				if(notInRange(x, minX, maxX)) {
+					return 0;
+				}
+
+				// n ^ 2
+				for (i = 0; i < tuples.length; i++) {
+					y = ys[i];
+
+					for (j = 0; j < tuples.length; j++) {
+						y *= i === j && 1 || (x - xs[j]) / (xs[i] - xs[j]);
+					}
+
+					res += y;
+				}
+
+				return res;
+			};
+
+		polynomial.interpolationStartX = minX;
+		polynomial.interpolationEndX = maxX;
+		polynomial.originalData = tuples;
+
+		return polynomial;
+	}
+
+	StandardLagrange.preconditions = isTupleArrayPrecondition;
+
 	function interpolate (method, params) {
-		var preconditionsResult;
+		var i, mthd, preconditionsResult;
 
-		if(!string(method)) {
-			console.error('Interpolation method is not a string!');
+		function warnNoMethod() {
+			console.error('Interpolation method is not defined!');	
+		}
+
+		if(!string(method) && !array(method)) {
+			console.error('Interpolation method is neither string nor array!');
 			return; // Non-intrusively return
 		}
 
-		if (!METHODS.hasOwnProperty(method)) {
-			console.error('Interpolation method is not defined!');
+		if (string(method) && !(mthd = METHODS.hasOwnProperty(method) && METHODS[method])) {
+			warnNoMethod();
 			return; // Non-intrusively return
 		}
 
-		if (METHODS[method].preconditions && 
-			(typeof METHODS[method].preconditions === 'function') && 
-			(preconditionsResult = !METHODS[method].preconditions(params).result)) {
+		if (array(method)) {
+			mthd = METHODS;
+			for (i = 0; i < method.length; i++) {
+				if (!(mthd = mthd[method[i]])) {
+					warnNoMethod();
+					return; 
+				}
+			}
+		}
+
+		if (mthd.preconditions && 
+			(typeof mthd.preconditions === 'function') && 
+			((preconditionsResult = !mthd.preconditions(params)).result)) {
 			console.error('Preconditions for interpolation method are not met:');
 			console.error(preconditionsResult.description);
 			return;
 		}
 
-		return METHODS[method](params);
+		return mthd(params);
 	}
 
 	window.interpolate = interpolate;
