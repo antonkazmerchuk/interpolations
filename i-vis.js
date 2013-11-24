@@ -25,7 +25,71 @@ window.onload = function () {
 							{x: 1, y:1}, 
 							{x: 1.5, y: 3.375}, 
 							{x:2, y:8}
-							]) // a bit smoother cube [-2, 2]
+							]), // a bit smoother cube [-2, 2]
+		interpolate('Newton', [
+							{x: -2 * Math.PI, y: 0}, 
+							{x: -7 * Math.PI / 4, y: Math.sqrt(2) / 2},
+							{x: -3 * Math.PI / 2, y: 1},
+							{x: -5 * Math.PI / 4, y: Math.sqrt(2) / 2},
+							{x: - Math.PI, y: 0},
+							{x: -3 * Math.PI / 4, y: -Math.sqrt(2) / 2},
+							{x: - Math.PI / 2, y: -1},
+							{x: - Math.PI / 4, y: -Math.sqrt(2) / 2},
+							{x: 0, y: 0},
+							{x: Math.PI / 4, y: Math.sqrt(2) / 2},
+							{x: Math.PI / 2, y: 1},
+							{x: 3 * Math.PI / 4, y: Math.sqrt(2) / 2},
+							{x: Math.PI, y: 0},
+							{x: 5 * Math.PI / 4, y: -Math.sqrt(2) / 2},
+							{x: 3 * Math.PI / 2, y: -1},
+							{x: 7 * Math.PI / 4, y: -Math.sqrt(2) / 2},
+							{x: 2 * Math.PI, y: 0}
+							]), // crude sine :D
+		interpolate('Newton', [
+							{x: -2 * Math.PI, y: 1}, 
+							{x: -7 * Math.PI / 4, y: Math.sqrt(2) / 2},
+							{x: -3 * Math.PI / 2, y: 0},
+							{x: -5 * Math.PI / 4, y: -Math.sqrt(2) / 2},
+							{x: - Math.PI, y: -1},
+							{x: -3 * Math.PI / 4, y: -Math.sqrt(2) / 2},
+							{x: - Math.PI / 2, y: 0},
+							{x: - Math.PI / 4, y: Math.sqrt(2) / 2},
+							{x: 0, y: 1},
+							{x: Math.PI / 4, y: Math.sqrt(2) / 2},
+							{x: Math.PI / 2, y: 0},
+							{x: 3 * Math.PI / 4, y: -Math.sqrt(2) / 2},
+							{x: Math.PI, y: -1},
+							{x: 5 * Math.PI / 4, y: -Math.sqrt(2) / 2},
+							{x: 3 * Math.PI / 2, y: 0},
+							{x: 7 * Math.PI / 4, y: Math.sqrt(2) / 2},
+							{x: 2 * Math.PI, y: 1}
+							]), // crude cosine :D
+		interpolate('Newton', [
+							{x: -2, y: 1/4},
+							{x: -1, y: 1/2},
+							{x: 0, y: 1},
+							{x: 1, y: 2},
+							{x: 2, y: 4}
+							]), // exp2 [-2, 2]
+		interpolate('Newton', [
+							{x: -2, y: 4},
+							{x: -1, y: 2},
+							{x: 0, y: 1},
+							{x: 1, y: 1/2},
+							{x: 2, y: 1/4}
+							]), // exp.5 [-2, 2]
+		interpolate('Newton', [
+							{x: 1/1024, y: -10},
+							{x: 1/512, y: -9},
+							{x: 1/256, y: -8},
+							{x: 1/128, y: -7},
+							{x: 1/64, y: -6},
+							{x: 1/32, y: -5},
+							{x: 1/16, y: -4},
+							{x: 1/8, y: -3},
+							{x: 1/4, y: -2},
+							{x: 1/2, y: -1}
+							]) // log2 [0<-,1]
 	],
 		counter = 0,
 		palette = new Rickshaw.Color.Palette();
@@ -45,8 +109,8 @@ window.onload = function () {
 		var graph = new Rickshaw.Graph({
 			min: 'auto',
 			element: div,
-			height: 250,
-			width: 400,
+			height: 150,
+			width: 300,
 			renderer: 'line',
 			series: [
 				{

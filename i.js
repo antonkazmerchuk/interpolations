@@ -7,6 +7,16 @@
 	function Polynomial (polynomial, xs) {
 		var polynomial = window.expandPolynomial(polynomial);
 
+		function asString() {
+			var accum = [], i;
+
+			for (i = 0; i < polynomial.length; i++) {
+				accum.push('(' + polynomial[i] + 'x^' + (polynomial.length - i - 1) + ')')
+			}
+
+			return accum.join('+');
+		}
+
 		function poly(x) {
 			var result = 0, i;
 
@@ -23,6 +33,7 @@
 
 		poly.interpolationStartX = xs.start;
 		poly.interpolationEndX = xs.end;
+		poly.asString = asString;
 
 		return poly;
 	}
