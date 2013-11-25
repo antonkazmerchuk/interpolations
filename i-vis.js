@@ -166,4 +166,6 @@ window.onload = function () {
 
 		iterator('Newton');
 		iterator(['Lagrange', 'standard']);
+		iterator(['Lagrange', 'barycentric', 'first form']);
+		iterator(['Lagrange', 'barycentric', 'second form']);
 }

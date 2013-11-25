@@ -3,9 +3,23 @@
 	var METHODS = {
 		'Newton' : Newton,
 		'Lagrange' : {
-			'standard' : StandardLagrange
+			'standard' : StandardLagrange,
+			'barycentric' : {
+				'first form' : BarycentricLagrange1,
+				'second form' : BarycentricLagrange2
+			}
 		}
 	};
+
+	function repeat(num, times) {
+		var array = [], i;
+
+		for (i = 0; i < times; i++) {
+			array.push(num);
+		}
+
+		return array;
+	}
 
 	function Polynomial (polynomial, xs) {
 		var polynomial = window.expandPolynomial(polynomial);
@@ -190,42 +204,124 @@
 
 	Newton.preconditions = isTupleArrayPrecondition;
 
-	// Produces instant polynomial
-	function StandardLagrange(tuples) {
+	function AbstractLagrange(tuples, computer) {
 		var modifiedTuples = modifyTuples(tuples),
 			xs = modifiedTuples.xs,
 			ys = modifiedTuples.ys,
 			minX = min(xs), 
 			maxX = max(xs);
-			polynomial = function standardLagrange(x) {
-				var i, j, res = 0, y;
-
-				if(notInRange(x, minX, maxX)) {
-					return 0;
-				}
-
-				// n ^ 2
-				for (i = 0; i < tuples.length; i++) {
-					y = ys[i];
-
-					for (j = 0; j < tuples.length; j++) {
-						y *= i === j && 1 || (x - xs[j]) / (xs[i] - xs[j]);
-					}
-
-					res += y;
-				}
-
-				return res;
-			};
+			polynomial = computer(xs, ys, minX, maxX);
 
 		polynomial.interpolationStartX = minX;
 		polynomial.interpolationEndX = maxX;
 		polynomial.originalData = tuples;
 
-		return polynomial;
+		return polynomial;	
+	}
+
+	// Produces instant polynomial
+	function StandardLagrange(tuples) {
+		return AbstractLagrange(
+				tuples, 
+				function standardLagrange(xs, ys, minX, maxX) {
+					return function standardLagrange(x) {
+						var i, j, res = 0, y;
+
+						if(notInRange(x, minX, maxX)) {
+							return 0;
+						}
+
+						// n ^ 2
+						for (i = 0; i < tuples.length; i++) {
+							y = ys[i];
+
+							for (j = 0; j < tuples.length; j++) {
+								y *= i === j && 1 || (x - xs[j]) / (xs[i] - xs[j]);
+							}
+
+							res += y;
+						}
+
+						return res;	
+					}
+			});	
 	}
 
 	StandardLagrange.preconditions = isTupleArrayPrecondition;
+
+	// Produces instant polynomial
+	function AbstractBarycentricLagrange(tuples, computer) {
+		function computeWeights(xs) {
+			var weights = repeat(1, xs.length),
+				j, k;
+
+			for (j = 1; j < xs.length; j++) {
+				for (k = 0; k < j; k++) {
+					weights[k] *= xs[k] - xs[j];
+					weights[j] *= xs[j] - xs[k];
+				}
+			}
+
+			for(j = 0; j < xs.length; j++) {
+				weights[j] = 1/ weights[j];
+			}
+
+			return weights;
+		}
+
+		var modifiedTuples = modifyTuples(tuples),
+			xs = modifiedTuples.xs,
+			weights = computeWeights(xs);
+
+		return AbstractLagrange(
+				tuples, 
+				computer(weights));	
+	}
+
+	function BarycentricLagrange1(tuples) {
+		return AbstractBarycentricLagrange(tuples, function (weights) {
+			return function standardLagrange(xs, ys, minX, maxX) {
+					return function standardLagrange(x) {
+						var lx = 1, i, result = 0;
+
+						for (i = 0; i < xs.length; i++) {
+							lx *= x - xs[i];
+							if (lx === 0) return ys[i];
+						}
+
+						for (i = 0; i < xs.length; i++) {
+							result += ys[i] * weights[i] / (x - xs[i]);
+						}
+
+						return result * lx;
+					}
+			}
+		});
+	}
+
+	BarycentricLagrange1.preconditions = isTupleArrayPrecondition;
+	
+	function BarycentricLagrange2(tuples) {
+		return AbstractBarycentricLagrange(tuples, function (weights) {
+			return function standardLagrange(xs, ys, minX, maxX) {
+					return function standardLagrange(x) {
+						var i, num = denom = 0, term, diff;
+
+						for (i = 0; i < xs.length; i++) {
+							diff = (x - xs[i]);
+							if (diff === 0) return ys[i];
+							term = (weights[i] / diff);
+							num += ys[i] * term;
+							denom += term;
+						}
+
+						return num/denom;
+					}
+			}
+		});
+	}
+
+	BarycentricLagrange2.preconditions = isTupleArrayPrecondition;
 
 	function interpolate (method, params) {
 		var i, mthd, preconditionsResult;
