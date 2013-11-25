@@ -1,3 +1,5 @@
+// https://github.com/antonkazmerchuk/interpolations
+
 (function (window, undefined) {
 
 	var METHODS = {
